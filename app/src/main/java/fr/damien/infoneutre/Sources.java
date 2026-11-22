@@ -44,13 +44,21 @@ public final class Sources {
          * le titre se termine par « - Reuters » et le résumé ne contient que le titre.
          */
         public final boolean googleNews;
+        /** Nom du média lu dans chaque article (recherches multi-sites). */
+        public final boolean itemSource;
 
         Feed(String theme, String source, String url, String lang, boolean googleNews) {
+            this(theme, source, url, lang, googleNews, false);
+        }
+
+        Feed(String theme, String source, String url, String lang, boolean googleNews,
+             boolean itemSource) {
             this.theme = theme;
             this.source = source;
             this.url = url;
             this.lang = lang;
             this.googleNews = googleNews;
+            this.itemSource = itemSource;
         }
     }
 
@@ -82,7 +90,15 @@ public final class Sources {
             q = query.replace(" ", "+");
         }
         String url = "https://news.google.com/rss/search?q=" + q + loc;
-        return new Feed(theme, "fr".equals(lang) ? "Recherche (FR)" : "Recherche (EN)", url, lang, true);
+        return new Feed(theme, "fr".equals(lang) ? "Recherche (FR)" : "Recherche (EN)", url, lang,
+                true, true);
+    }
+
+    /** Un site sans flux RSS, lu via Google Actualités (7 derniers jours). */
+    private static Feed site(String theme, String source, String domain) {
+        String url = "https://news.google.com/rss/search?q=when:7d+site:" + domain
+                + "&hl=fr&gl=FR&ceid=FR:fr";
+        return new Feed(theme, source, url, "fr", true);
     }
 
     public static List<Feed> all() {
@@ -114,6 +130,7 @@ public final class Sources {
         l.add(fr(NATIONAL, "franceinfo", "https://www.francetvinfo.fr/politique.rss"));
         l.add(fr(NATIONAL, "France 24", "https://www.france24.com/fr/france/rss"));
         l.add(fr(NATIONAL, "Ouest-France", "https://www.ouest-france.fr/rss-en-continu.xml"));
+        l.add(site(NATIONAL, "Outre-mer la 1ère", "la1ere.franceinfo.fr"));
 
         // ---- Sport
         l.add(fr(RUGBY, "franceinfo", "https://www.francetvinfo.fr/sports/rugby.rss"));

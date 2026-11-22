@@ -10,7 +10,7 @@ publiés par la source** (aucune réécriture, aucune IA, aucun commentaire).
 |-------------------|-------------------------------------------------------|
 | International     | franceinfo, France 24, RTBF, Radio-Canada · Reuters, BBC, NPR, DW (traduits) |
 | Spatial           | franceinfo, Futura · NASA, ESA, Space.com (traduits) |
-| National          | franceinfo (France, Politique), France 24 (France), Ouest-France |
+| National          | franceinfo (France, Politique), France 24 (France), Ouest-France, Outre-mer la 1ère |
 | Sport · Rugby     | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
 | Sport · Tennis    | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
 | Sport · Football  | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |

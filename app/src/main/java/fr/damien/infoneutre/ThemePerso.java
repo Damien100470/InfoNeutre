@@ -56,7 +56,7 @@ public final class ThemePerso {
 
     /** Sites interrogés en français (mêmes médias que les onglets, + presse régionale de référence). */
     private static final String[] SITES_FR = {
-            "francetvinfo.fr", "france24.com", "rfi.fr", "ouest-france.fr", "sudouest.fr",
+            "francetvinfo.fr", "la1ere.franceinfo.fr", "france24.com", "rfi.fr", "ouest-france.fr", "sudouest.fr",
             "lequipe.fr", "rtbf.be", "radio-canada.ca", "futura-sciences.com"
     };
     /** Sites interrogés en anglais (traduits). */

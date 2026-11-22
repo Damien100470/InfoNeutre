@@ -124,7 +124,7 @@ public final class FeedFetcher {
                         d = "";
                     }
                     String src = feed.source;
-                    if (feed.googleNews && itemSource != null && !itemSource.trim().isEmpty()) {
+                    if (feed.itemSource && itemSource != null && !itemSource.trim().isEmpty()) {
                         src = clean(itemSource);
                     }
                     if (!t.isEmpty() && link != null) {
