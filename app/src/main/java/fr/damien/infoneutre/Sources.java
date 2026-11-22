@@ -16,13 +16,14 @@ public final class Sources {
     public static final String INTERNATIONAL = "International";
     public static final String SPATIAL = "Spatial";
     public static final String NATIONAL = "National";
+    public static final String GIRONDE = "Gironde";
     public static final String RUGBY = "Rugby";
     public static final String TENNIS = "Tennis";
     public static final String FOOTBALL = "Football";
 
     /** Ordre d'affichage des onglets. */
     public static final String[] THEMES = {
-            INTERNATIONAL, SPATIAL, NATIONAL, RUGBY, TENNIS, FOOTBALL
+            INTERNATIONAL, SPATIAL, NATIONAL, GIRONDE, RUGBY, TENNIS, FOOTBALL
     };
 
     /** Libellé affiché sur l'onglet. */
@@ -131,6 +132,14 @@ public final class Sources {
         l.add(fr(NATIONAL, "France 24", "https://www.france24.com/fr/france/rss"));
         l.add(fr(NATIONAL, "Ouest-France", "https://www.ouest-france.fr/rss-en-continu.xml"));
         l.add(site(NATIONAL, "Outre-mer la 1ère", "la1ere.franceinfo.fr"));
+
+        // ---- Gironde (presse locale de référence + audiovisuel public régional)
+        l.add(fr(GIRONDE, "Sud Ouest", "https://www.sudouest.fr/gironde/rss.xml"));
+        l.add(site(GIRONDE, "France 3 Aquitaine",
+                "france3-regions.franceinfo.fr/nouvelle-aquitaine/gironde"));
+        l.add(googleSearch(GIRONDE, "(Gironde OR Bordeaux OR Médoc OR Arcachon OR Libourne) "
+                + "(site:sudouest.fr OR site:francebleu.fr OR site:france3-regions.franceinfo.fr) "
+                + "when:7d", "fr"));
 
         // ---- Sport
         l.add(fr(RUGBY, "franceinfo", "https://www.francetvinfo.fr/sports/rugby.rss"));

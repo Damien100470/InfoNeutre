@@ -11,6 +11,7 @@ publiés par la source** (aucune réécriture, aucune IA, aucun commentaire).
 | International     | franceinfo, France 24, RTBF, Radio-Canada · Reuters, BBC, NPR, DW (traduits) |
 | Spatial           | franceinfo, Futura · NASA, ESA, Space.com (traduits) |
 | National          | franceinfo (France, Politique), France 24 (France), Ouest-France, Outre-mer la 1ère |
+| Gironde           | Sud Ouest, France 3 Aquitaine, ici Gironde (ex-France Bleu) |
 | Sport · Rugby     | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
 | Sport · Tennis    | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
 | Sport · Football  | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
@@ -30,6 +31,11 @@ Onglet **＋ Thème** : saisir un ou plusieurs mots-clés séparés par des virg
   Futura ; Reuters, AP, BBC, NPR, DW traduits), sur 7 jours.
 
 Appui long sur un onglet ★ pour le supprimer.
+
+Au premier lancement, un thème **★ Autour de moi** est créé : Saint-Médard-en-Jalles et
+communes voisines (Le Haillan, Saint-Aubin-de-Médoc, Le Taillan-Médoc, Martignas-sur-Jalle,
+Saint-Jean-d'Illac, Eysines, Mérignac, Le Porge, Salaunes), recherchées dans Sud Ouest,
+France 3 Aquitaine et ici Gironde.
 
 ## Ce que fait la « synthèse » (purement mécanique)
 

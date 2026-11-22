@@ -86,6 +86,11 @@ public class MainActivity extends Activity {
         prefs = getSharedPreferences("reglages", MODE_PRIVATE);
         periodIndex = Math.max(0, Math.min(PERIOD_MS.length - 1, prefs.getInt("periode", 1)));
         persos = ThemePerso.load(prefs);
+        if (!prefs.getBoolean("autour_cree", false)) {
+            persos.add(0, ThemePerso.autourDeMoi());
+            ThemePerso.save(prefs, persos);
+            prefs.edit().putBoolean("autour_cree", true).apply();
+        }
 
         store = new Store(this);
         store.load();
