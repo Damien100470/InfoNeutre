@@ -14,10 +14,8 @@ import java.util.Set;
  */
 public final class Synthese {
 
-    /** Fenêtre conservée : 48 h. */
-    public static final long WINDOW_MS = 48L * 3600L * 1000L;
     /** Nombre maximum de sujets affichés par thème. */
-    public static final int MAX_PER_THEME = 60;
+    public static final int MAX_PER_THEME = 300;
     /** Seuil de similarité des titres pour considérer deux articles comme le même sujet. */
     private static final double SIMILARITY = 0.6;
 
@@ -26,15 +24,16 @@ public final class Synthese {
         String[] w = ("le la les un une des de du d l au aux et ou en a à dans sur pour par "
                 + "avec sans ce cet cette ces son sa ses leur leurs qui que quoi est sont "
                 + "été être ont il elle ils elles on se ne pas plus apres après avant entre "
-                + "contre comme mais the of to in").split(" ");
+                + "contre comme mais the of to in for on at by with from as is are was were has have "
+                + "after over new says said its into").split(" ");
         Collections.addAll(STOP, w);
     }
 
-    public static List<Article> build(String theme, List<Article> all, long now) {
+    public static List<Article> build(String theme, List<Article> all, long now, long windowMs) {
         List<Article> list = new ArrayList<>();
         for (Article a : all) {
             if (!theme.equals(a.theme)) continue;
-            if (a.timeMillis > 0 && now - a.timeMillis > WINDOW_MS) continue;
+            if (a.timeMillis > 0 && now - a.timeMillis > windowMs) continue;
             list.add(a);
         }
         // Plus récent en premier ; dates inconnues à la fin.
@@ -46,7 +45,7 @@ public final class Synthese {
 
         for (Article a : list) {
             if (!seenLinks.add(a.link)) continue; // même article dans deux flux
-            Set<String> k = words(a.title);
+            Set<String> k = words(a.displayTitle());
             int match = -1;
             for (int i = 0; i < result.size(); i++) {
                 if (similarity(k, keys.get(i)) >= SIMILARITY) { match = i; break; }

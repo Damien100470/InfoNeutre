@@ -26,4 +26,7 @@ android {
     }
 }
 
-// Aucune dépendance externe : uniquement le SDK Android.
+dependencies {
+    // Traduction anglais -> français sur le téléphone (Google ML Kit, gratuit)
+    implementation 'com.google.mlkit:translate:17.0.3'
+}

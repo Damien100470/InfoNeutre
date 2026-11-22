@@ -2,6 +2,7 @@ package fr.damien.infoneutre;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends Activity {
 
@@ -42,21 +42,31 @@ public class MainActivity extends Activity {
     private static final int C_MUTED = Color.parseColor("#5F6B7A");
     private static final int C_CARD = Color.WHITE;
 
+    private static final long HOUR = 3600L * 1000L;
+    private static final String[] PERIOD_LABELS = {"24 h", "48 h", "7 jours", "30 jours"};
+    private static final long[] PERIOD_MS = {24 * HOUR, 48 * HOUR, 7 * 24 * HOUR, 30 * 24 * HOUR};
+
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final ExecutorService pool = Executors.newFixedThreadPool(6);
 
-    private final List<Article> articles = Collections.synchronizedList(new ArrayList<>());
-    /** Flux en échec : URL -> message. */
-    private final Map<Sources.Feed, String> failures =
-            Collections.synchronizedMap(new LinkedHashMap<>());
+    private Store store;
+    private Traducteur traducteur;
+    private SharedPreferences prefs;
+
+    /** Flux en échec lors du dernier chargement. */
+    private final Map<Sources.Feed, String> failures = new LinkedHashMap<>();
 
     private String currentTheme = Sources.THEMES[0];
+    private int periodIndex = 1;
     private boolean loading = false;
-    private long lastUpdate = 0;
+    private int loadGeneration = 0;
+    private String statusLoad = "";
+    private String statusTranslate = "";
 
     private TextView status;
     private TextView refresh;
     private LinearLayout tabs;
+    private LinearLayout periods;
     private LinearLayout list;
     private ScrollView scroll;
 
@@ -66,6 +76,17 @@ public class MainActivity extends Activity {
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             getWindow().setStatusBarColor(C_PRIMARY);
         }
+        prefs = getSharedPreferences("reglages", MODE_PRIVATE);
+        periodIndex = Math.max(0, Math.min(PERIOD_MS.length - 1, prefs.getInt("periode", 1)));
+
+        store = new Store(this);
+        store.load();
+        try {
+            traducteur = new Traducteur();
+        } catch (Throwable t) {
+            traducteur = null; // services Google absents : affichage en anglais
+        }
+
         setContentView(buildLayout());
         selectTab(currentTheme);
         reload();
@@ -75,6 +96,8 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         pool.shutdownNow();
+        if (traducteur != null) traducteur.close();
+        store.save();
     }
 
     // ------------------------------------------------------------------ Interface
@@ -110,7 +133,7 @@ public class MainActivity extends Activity {
         header.addView(status);
         root.addView(header);
 
-        // Onglets
+        // Onglets (thèmes)
         HorizontalScrollView hs = new HorizontalScrollView(this);
         hs.setHorizontalScrollBarEnabled(false);
         hs.setBackgroundColor(C_PRIMARY);
@@ -130,11 +153,30 @@ public class MainActivity extends Activity {
         hs.addView(tabs);
         root.addView(hs);
 
+        // Période
+        periods = new LinearLayout(this);
+        periods.setOrientation(LinearLayout.HORIZONTAL);
+        periods.setGravity(Gravity.CENTER_VERTICAL);
+        periods.setPadding(dp(14), dp(8), dp(14), dp(2));
+        periods.addView(text("Période :", 13, C_MUTED, true));
+        for (int i = 0; i < PERIOD_LABELS.length; i++) {
+            TextView p = text(PERIOD_LABELS[i], 13, C_PRIMARY, true);
+            p.setTag(i);
+            p.setPadding(dp(10), dp(5), dp(10), dp(5));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(dp(6), 0, 0, 0);
+            p.setOnClickListener(v -> selectPeriod((Integer) v.getTag()));
+            periods.addView(p, lp);
+        }
+        root.addView(periods);
+        updatePeriodChips();
+
         // Liste
         scroll = new ScrollView(this);
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(dp(10), dp(10), dp(10), dp(24));
+        list.setPadding(dp(10), dp(8), dp(10), dp(24));
         scroll.addView(list);
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -153,14 +195,34 @@ public class MainActivity extends Activity {
         scroll.scrollTo(0, 0);
     }
 
+    private void selectPeriod(int index) {
+        periodIndex = index;
+        prefs.edit().putInt("periode", index).apply();
+        updatePeriodChips();
+        render();
+        scroll.scrollTo(0, 0);
+    }
+
+    private void updatePeriodChips() {
+        for (int i = 1; i < periods.getChildCount(); i++) {
+            TextView p = (TextView) periods.getChildAt(i);
+            boolean sel = ((Integer) p.getTag()) == periodIndex;
+            p.setBackground(sel ? rounded(C_PRIMARY, 14) : rounded(Color.parseColor("#DDE4EE"), 14));
+            p.setTextColor(sel ? Color.WHITE : C_PRIMARY);
+        }
+    }
+
+    private void updateStatus() {
+        String s = statusLoad;
+        if (!statusTranslate.isEmpty()) s = s.isEmpty() ? statusTranslate : s + "\n" + statusTranslate;
+        status.setText(s);
+    }
+
     private void render() {
         list.removeAllViews();
         long now = System.currentTimeMillis();
-        List<Article> snapshot;
-        synchronized (articles) {
-            snapshot = new ArrayList<>(articles);
-        }
-        List<Article> items = Synthese.build(currentTheme, snapshot, now);
+        long window = PERIOD_MS[periodIndex];
+        List<Article> items = Synthese.build(currentTheme, store.all(), now, window);
 
         // Résumé du thème (comptage factuel)
         Set<String> srcs = new LinkedHashSet<>();
@@ -170,10 +232,10 @@ public class MainActivity extends Activity {
         }
         String head;
         if (items.isEmpty()) {
-            head = loading ? "Chargement…" : "Aucun sujet sur les dernières 48 h.";
+            head = loading ? "Chargement…" : "Aucun sujet sur la période choisie.";
         } else {
             head = items.size() + " sujet" + (items.size() > 1 ? "s" : "")
-                    + " · 48 dernières heures · " + join(srcs);
+                    + " · " + PERIOD_LABELS[periodIndex] + " · " + join(srcs);
         }
         TextView h = text(head, 14, C_MUTED, true);
         h.setPadding(dp(6), dp(2), dp(6), dp(8));
@@ -183,11 +245,9 @@ public class MainActivity extends Activity {
 
         // Sources indisponibles pour ce thème
         List<String> ko = new ArrayList<>();
-        synchronized (failures) {
-            for (Map.Entry<Sources.Feed, String> e : failures.entrySet()) {
-                if (e.getKey().theme.equals(currentTheme)) {
-                    ko.add(e.getKey().source + " (" + e.getValue() + ")");
-                }
+        for (Map.Entry<Sources.Feed, String> e : failures.entrySet()) {
+            if (e.getKey().theme.equals(currentTheme)) {
+                ko.add(e.getKey().source + " (" + e.getValue() + ")");
             }
         }
         if (!ko.isEmpty()) {
@@ -196,11 +256,17 @@ public class MainActivity extends Activity {
             list.addView(f);
         }
 
-        TextView note = text("Titres et chapôs reproduits tels que publiés par les sources, "
-                + "sans réécriture ni commentaire. Les sujets traités par plusieurs médias "
-                + "sont regroupés.", 12, C_MUTED, false);
-        note.setPadding(dp(6), dp(16), dp(6), 0);
-        list.addView(note);
+        String note = "Titres et chapôs reproduits tels que publiés par les sources, sans "
+                + "réécriture ni commentaire. Les sources anglophones sont traduites "
+                + "automatiquement (traduction littérale) ; « Voir l'original » affiche le texte "
+                + "d'origine. Les sujets traités par plusieurs médias sont regroupés.";
+        if (periodIndex >= 2) {
+            note += " Au-delà de 48 h, l'affichage s'appuie sur l'historique conservé par "
+                    + "l'appli : il se remplit à chaque ouverture (30 jours maximum).";
+        }
+        TextView n = text(note, 12, C_MUTED, false);
+        n.setPadding(dp(6), dp(16), dp(6), 0);
+        list.addView(n);
     }
 
     private View card(Article a, long now) {
@@ -214,39 +280,63 @@ public class MainActivity extends Activity {
         c.setLayoutParams(lp);
         if (android.os.Build.VERSION.SDK_INT >= 21) c.setElevation(dp(1));
 
-        String meta = a.source + (a.timeMillis > 0 ? " · " + formatTime(a.timeMillis, now) : "");
-        TextView m = text(meta, 12, C_PRIMARY, true);
-        c.addView(m);
+        StringBuilder meta = new StringBuilder(a.source);
+        if (a.isTranslated()) meta.append(" · traduit de l'anglais");
+        else if ("en".equals(a.lang)) meta.append(" · en anglais");
+        if (a.timeMillis > 0) meta.append(" · ").append(formatTime(a.timeMillis, now));
+        c.addView(text(meta.toString(), 12, C_PRIMARY, true));
 
-        TextView t = text(a.title, 17, C_TEXT, true);
+        final TextView t = text(a.displayTitle(), 17, C_TEXT, true);
         t.setPadding(0, dp(4), 0, 0);
         c.addView(t);
 
-        if (!a.summary.isEmpty() && !a.summary.equals(a.title)) {
-            TextView s = text(a.summary, 14, C_TEXT, false);
-            s.setPadding(0, dp(6), 0, 0);
-            s.setMaxLines(6);
-            s.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            c.addView(s);
+        final TextView s = text("", 14, C_TEXT, false);
+        s.setPadding(0, dp(6), 0, 0);
+        s.setMaxLines(6);
+        s.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        setSummary(s, a.displaySummary(), a.displayTitle());
+        c.addView(s);
+
+        if (a.isTranslated()) {
+            final TextView toggle = text("Voir l'original", 13, C_MUTED, true);
+            toggle.setPadding(0, dp(8), 0, 0);
+            final boolean[] original = {false};
+            toggle.setOnClickListener(v -> {
+                original[0] = !original[0];
+                if (original[0]) {
+                    t.setText(a.title);
+                    setSummary(s, a.summary, a.title);
+                    toggle.setText("Voir la traduction");
+                } else {
+                    t.setText(a.displayTitle());
+                    setSummary(s, a.displaySummary(), a.displayTitle());
+                    toggle.setText("Voir l'original");
+                }
+            });
+            c.addView(toggle);
         }
 
         if (!a.alsoSources.isEmpty()) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, dp(8), 0, 0);
-            row.addView(text("Aussi chez : ", 13, C_MUTED, false));
+            TextView lbl = text("Aussi chez :", 13, C_MUTED, false);
+            lbl.setPadding(0, dp(8), 0, dp(2));
+            c.addView(lbl);
             for (int i = 0; i < a.alsoSources.size(); i++) {
                 final String url = a.alsoLinks.get(i);
-                TextView s = text(a.alsoSources.get(i) + (i < a.alsoSources.size() - 1 ? ", " : ""),
-                        13, C_PRIMARY, true);
-                s.setOnClickListener(v -> open(url));
-                row.addView(s);
+                TextView o = text("↗ " + a.alsoSources.get(i), 13, C_PRIMARY, true);
+                o.setPadding(dp(8), dp(3), 0, dp(3));
+                o.setOnClickListener(v -> open(url));
+                c.addView(o);
             }
-            c.addView(row);
         }
 
         c.setOnClickListener(v -> open(a.link));
         return c;
+    }
+
+    private void setSummary(TextView s, String summary, String title) {
+        boolean show = summary != null && !summary.isEmpty() && !summary.equals(title);
+        s.setText(show ? summary : "");
+        s.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     // ------------------------------------------------------------------ Chargement
@@ -254,47 +344,96 @@ public class MainActivity extends Activity {
     private void reload() {
         if (loading) return;
         loading = true;
+        final int gen = ++loadGeneration;
         refresh.setAlpha(0.5f);
-        articles.clear();
         failures.clear();
 
         final List<Sources.Feed> feeds = Sources.all();
-        final AtomicInteger done = new AtomicInteger(0);
-        status.setText("Chargement de " + feeds.size() + " flux…");
+        final int[] done = {0};
+        final List<Article> fresh = new ArrayList<>();
+        statusLoad = "Chargement de " + feeds.size() + " flux…";
+        updateStatus();
         render();
 
         for (final Sources.Feed f : feeds) {
             pool.execute(() -> {
+                List<Article> got = null;
+                String err = null;
                 try {
-                    List<Article> got = FeedFetcher.fetch(f);
-                    articles.addAll(got);
+                    got = FeedFetcher.fetch(f);
                 } catch (Exception e) {
-                    String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                    if (msg.length() > 60) msg = msg.substring(0, 60);
-                    failures.put(f, msg);
+                    err = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                    if (err.length() > 60) err = err.substring(0, 60);
                 }
-                final int n = done.incrementAndGet();
-                ui.post(() -> onFeedDone(n, feeds.size()));
+                final List<Article> result = got;
+                final String error = err;
+                // Tout l'état est modifié sur le fil principal.
+                ui.post(() -> {
+                    if (gen != loadGeneration || isFinishing()) return;
+                    if (result != null) fresh.addAll(result);
+                    else failures.put(f, error);
+                    done[0]++;
+                    if (done[0] < feeds.size()) {
+                        statusLoad = "Chargement… " + done[0] + "/" + feeds.size() + " flux";
+                        updateStatus();
+                    } else {
+                        onAllFeedsDone(fresh, feeds.size());
+                    }
+                });
             });
         }
     }
 
-    private void onFeedDone(int n, int total) {
-        if (isFinishing()) return;
-        if (n < total) {
-            status.setText("Chargement… " + n + "/" + total + " flux");
-            return;
-        }
+    private void onAllFeedsDone(List<Article> fresh, int total) {
+        long now = System.currentTimeMillis();
+        int added = store.merge(fresh, now);
+        store.prune(now);
+        store.save();
+
         loading = false;
         refresh.setAlpha(1f);
-        lastUpdate = System.currentTimeMillis();
         int ok = total - failures.size();
-        status.setText("Mis à jour à " + new SimpleDateFormat("HH:mm", Locale.FRANCE)
-                .format(new Date(lastUpdate)) + " · " + ok + "/" + total + " flux reçus");
+        statusLoad = "Mis à jour à " + new SimpleDateFormat("HH:mm", Locale.FRANCE)
+                .format(new Date(now)) + " · " + ok + "/" + total + " flux · "
+                + added + " nouveau" + (added > 1 ? "x" : "");
+        updateStatus();
         if (ok == 0) {
             Toast.makeText(this, "Aucun flux reçu : vérifie la connexion.", Toast.LENGTH_LONG).show();
         }
         render();
+        startTranslation();
+    }
+
+    // ------------------------------------------------------------------ Traduction
+
+    private void startTranslation() {
+        if (traducteur == null || traducteur.isRunning()) return;
+        List<Article> todo = new ArrayList<>();
+        for (Article a : store.all()) if (a.needsTranslation()) todo.add(a);
+        if (todo.isEmpty()) return;
+        // Les plus récents d'abord.
+        Collections.sort(todo, (x, y) -> Long.compare(y.timeMillis, x.timeMillis));
+
+        statusTranslate = "Traduction de " + todo.size() + " articles anglophones…";
+        updateStatus();
+        traducteur.translate(todo, new Traducteur.Listener() {
+            @Override
+            public void onProgress(int done, int total) {
+                statusTranslate = "Traduction… " + done + "/" + total;
+                updateStatus();
+                if (done % 30 == 0) render();
+            }
+
+            @Override
+            public void onFinished(boolean ok, String error) {
+                if (isFinishing()) return;
+                statusTranslate = ok ? "" : "Traduction indisponible (modèle non téléchargé)"
+                        + " : textes anglais affichés tels quels.";
+                updateStatus();
+                store.save();
+                render();
+            }
+        });
     }
 
     // ------------------------------------------------------------------ Utilitaires

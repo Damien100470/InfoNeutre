@@ -113,9 +113,16 @@ public final class FeedFetcher {
                 if (inItem && (name.equals("item") || name.equals("entry"))) {
                     inItem = false;
                     String t = clean(title);
+                    String d = clean(desc);
+                    if (feed.googleNews) {
+                        // « Titre - Reuters » -> « Titre » ; le résumé Google ne répète que le titre.
+                        int cut = t.lastIndexOf(" - ");
+                        if (cut > 0) t = t.substring(0, cut).trim();
+                        d = "";
+                    }
                     if (!t.isEmpty() && link != null) {
-                        out.add(new Article(feed.theme, feed.source, t, clean(desc),
-                                link.trim(), parseDate(date)));
+                        out.add(new Article(feed.theme, feed.source, t, d,
+                                link.trim(), parseDate(date), feed.lang));
                     }
                 }
             }
