@@ -51,10 +51,19 @@ public final class Sources {
         l.add(new Feed(INTERNATIONAL, "franceinfo", "https://www.francetvinfo.fr/monde.rss"));
         l.add(new Feed(INTERNATIONAL, "France 24", "https://www.france24.com/fr/europe/rss"));
         l.add(new Feed(INTERNATIONAL, "France 24", "https://www.france24.com/fr/afrique/rss"));
+        // Médias publics étrangers
+        l.add(new Feed(INTERNATIONAL, "RTBF (Belgique)",
+                "https://rss.rtbf.be/article/rss/highlight_rtbfinfo_info-monde.xml?source=internal"));
+        l.add(new Feed(INTERNATIONAL, "RTBF (Belgique)",
+                "https://rss.rtbf.be/article/rss/highlight_rtbfinfo_monde-europe.xml?source=internal"));
+        l.add(new Feed(INTERNATIONAL, "Radio-Canada", "https://ici.radio-canada.ca/rss/4159"));
+        l.add(new Feed(INTERNATIONAL, "BBC (EN)", "https://feeds.bbci.co.uk/news/world/rss.xml"));
+        l.add(new Feed(INTERNATIONAL, "DW (EN)", "https://rss.dw.com/xml/rss-en-all"));
 
         // ---- Spatial
         l.add(new Feed(SPATIAL, "franceinfo", "https://www.francetvinfo.fr/sciences/espace.rss"));
         l.add(new Feed(SPATIAL, "Futura", "https://www.futura-sciences.com/rss/espace/actualites.xml"));
+        l.add(new Feed(SPATIAL, "NASA (EN)", "https://www.nasa.gov/news-release/feed/"));
 
         // ---- National
         l.add(new Feed(NATIONAL, "franceinfo", "https://www.francetvinfo.fr/france.rss"));

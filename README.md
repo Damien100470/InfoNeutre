@@ -8,8 +8,8 @@ publiés par la source** (aucune réécriture, aucune IA, aucun commentaire).
 
 | Onglet            | Sources                                               |
 |-------------------|-------------------------------------------------------|
-| International     | franceinfo (Monde), France 24 (Europe, Afrique)       |
-| Spatial           | franceinfo (Espace), Futura (Espace)                  |
+| International     | franceinfo (Monde), France 24 (Europe, Afrique), RTBF (Belgique), Radio-Canada, BBC World (anglais), DW (anglais) |
+| Spatial           | franceinfo (Espace), Futura (Espace), NASA (anglais)  |
 | National          | franceinfo (France, Politique), France 24 (France), Ouest-France |
 | Sport · Rugby     | franceinfo, L'Équipe                                  |
 | Sport · Tennis    | franceinfo, L'Équipe                                  |
