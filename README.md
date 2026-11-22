@@ -8,16 +8,22 @@ publiés par la source** (aucune réécriture, aucune IA, aucun commentaire).
 
 | Onglet            | Sources                                               |
 |-------------------|-------------------------------------------------------|
-| International     | franceinfo (Monde), France 24 (Europe, Afrique), RTBF (Belgique), Radio-Canada, BBC World (anglais), DW (anglais) |
-| Spatial           | franceinfo (Espace), Futura (Espace), NASA (anglais)  |
+| International     | franceinfo, France 24, RTBF, Radio-Canada · Reuters, BBC, NPR, DW (traduits) |
+| Spatial           | franceinfo, Futura · NASA, ESA, Space.com (traduits) |
 | National          | franceinfo (France, Politique), France 24 (France), Ouest-France |
-| Sport · Rugby     | franceinfo, L'Équipe                                  |
-| Sport · Tennis    | franceinfo, L'Équipe                                  |
-| Sport · Football  | franceinfo, L'Équipe                                  |
+| Sport · Rugby     | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
+| Sport · Tennis    | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
+| Sport · Football  | franceinfo, L'Équipe · BBC Sport, Reuters (traduits) |
+
+Traduction anglais → français faite sur le téléphone (Google ML Kit, gratuit ;
+modèle d'environ 30 Mo téléchargé au premier lancement). « Voir l'original » sur
+chaque carte traduite. Reuters n'ayant plus de flux RSS, ses articles sont lus
+via la recherche Google Actualités (rubriques Monde et Sport).
 
 ## Ce que fait la « synthèse » (purement mécanique)
 
-- garde les 48 dernières heures, du plus récent au plus ancien ;
+- période au choix : 24 h, 48 h, 7 jours, 30 jours (historique local conservé 30 jours) ;
+- tri du plus récent au plus ancien ;
 - regroupe un même sujet publié par plusieurs médias (titres très proches) :
   une seule carte, avec « Aussi chez : … » cliquable ;
 - retire le HTML des chapôs, sans toucher au texte ;
