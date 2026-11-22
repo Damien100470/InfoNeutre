@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône simple : carré bleu nuit avec trois lignes (des « titres »). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#1F3A5F"
+        android:pathData="M8,4h32a4,4 0,0 1,4 4v32a4,4 0,0 1,-4 4h-32a4,4 0,0 1,-4 -4v-32a4,4 0,0 1,4 -4z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M12,13h24v4h-24z" />
+    <path android:fillColor="#CFE0F5"
+        android:pathData="M12,22h24v3h-24z" />
+    <path android:fillColor="#CFE0F5"
+        android:pathData="M12,30h16v3h-16z" />
+</vector>
