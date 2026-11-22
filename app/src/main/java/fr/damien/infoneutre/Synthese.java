@@ -30,9 +30,19 @@ public final class Synthese {
     }
 
     public static List<Article> build(String theme, List<Article> all, long now, long windowMs) {
+        return build(theme, null, all, now, windowMs);
+    }
+
+    /**
+     * @param perso thème saisi par l'utilisateur (null pour un thème fixe) : on y ajoute
+     *              tous les articles reçus, tous thèmes confondus, qui contiennent ses mots-clés.
+     */
+    public static List<Article> build(String theme, ThemePerso perso, List<Article> all,
+                                      long now, long windowMs) {
         List<Article> list = new ArrayList<>();
         for (Article a : all) {
-            if (!theme.equals(a.theme)) continue;
+            boolean in = theme.equals(a.theme) || (perso != null && perso.matches(a));
+            if (!in) continue;
             if (a.timeMillis > 0 && now - a.timeMillis > windowMs) continue;
             list.add(a);
         }

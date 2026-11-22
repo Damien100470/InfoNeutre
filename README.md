@@ -20,6 +20,17 @@ modèle d'environ 30 Mo téléchargé au premier lancement). « Voir l'original 
 chaque carte traduite. Reuters n'ayant plus de flux RSS, ses articles sont lus
 via la recherche Google Actualités (rubriques Monde et Sport).
 
+## Thèmes personnels
+
+Onglet **＋ Thème** : saisir un ou plusieurs mots-clés séparés par des virgules
+(ex. `UBB, Bordeaux-Bègles`). L'onglet créé (★) regroupe :
+- les articles déjà reçus, tous thèmes confondus, qui contiennent ces mots ;
+- une recherche Google Actualités limitée aux sites des médias retenus
+  (franceinfo, France 24, RFI, Ouest-France, Sud Ouest, L'Équipe, RTBF, Radio-Canada,
+  Futura ; Reuters, AP, BBC, NPR, DW traduits), sur 7 jours.
+
+Appui long sur un onglet ★ pour le supprimer.
+
 ## Ce que fait la « synthèse » (purement mécanique)
 
 - période au choix : 24 h, 48 h, 7 jours, 30 jours (historique local conservé 30 jours) ;

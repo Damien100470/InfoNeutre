@@ -69,6 +69,22 @@ public final class Sources {
         return new Feed(theme, "Reuters", url, "en", true);
     }
 
+    /**
+     * Recherche Google Actualités (thème saisi par l'utilisateur). Le nom du média est lu
+     * dans chaque article (balise source).
+     */
+    public static Feed googleSearch(String theme, String query, String lang) {
+        String loc = "fr".equals(lang) ? "&hl=fr&gl=FR&ceid=FR:fr" : "&hl=en-US&gl=US&ceid=US:en";
+        String q;
+        try {
+            q = java.net.URLEncoder.encode(query, "UTF-8");
+        } catch (Exception e) {
+            q = query.replace(" ", "+");
+        }
+        String url = "https://news.google.com/rss/search?q=" + q + loc;
+        return new Feed(theme, "fr".equals(lang) ? "Recherche (FR)" : "Recherche (EN)", url, lang, true);
+    }
+
     public static List<Feed> all() {
         List<Feed> l = new ArrayList<>();
 

@@ -69,7 +69,7 @@ public final class FeedFetcher {
 
         List<Article> out = new ArrayList<>();
         boolean inItem = false;
-        String title = null, link = null, desc = null, date = null;
+        String title = null, link = null, desc = null, date = null, itemSource = null;
 
         int ev = p.getEventType();
         while (ev != XmlPullParser.END_DOCUMENT) {
@@ -77,7 +77,7 @@ public final class FeedFetcher {
                 String name = localName(p.getName());
                 if (name.equals("item") || name.equals("entry")) {
                     inItem = true;
-                    title = link = desc = date = null;
+                    title = link = desc = date = itemSource = null;
                 } else if (inItem) {
                     switch (name) {
                         case "title":
@@ -94,6 +94,9 @@ public final class FeedFetcher {
                             }
                             break;
                         }
+                        case "source": // nom du média (flux Google Actualités)
+                            itemSource = readText(p);
+                            break;
                         case "description":
                         case "summary":
                             if (desc == null) desc = readText(p);
@@ -120,8 +123,12 @@ public final class FeedFetcher {
                         if (cut > 0) t = t.substring(0, cut).trim();
                         d = "";
                     }
+                    String src = feed.source;
+                    if (feed.googleNews && itemSource != null && !itemSource.trim().isEmpty()) {
+                        src = clean(itemSource);
+                    }
                     if (!t.isEmpty() && link != null) {
-                        out.add(new Article(feed.theme, feed.source, t, d,
+                        out.add(new Article(feed.theme, src, t, d,
                                 link.trim(), parseDate(date), feed.lang));
                     }
                 }

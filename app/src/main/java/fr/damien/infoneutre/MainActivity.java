@@ -1,6 +1,7 @@
 package fr.damien.infoneutre;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -14,6 +15,8 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.text.InputType;
+import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -56,7 +59,11 @@ public class MainActivity extends Activity {
     /** Flux en échec lors du dernier chargement. */
     private final Map<Sources.Feed, String> failures = new LinkedHashMap<>();
 
+    private static final String ADD_TAB = "__ajouter__";
+    private List<ThemePerso> persos = new ArrayList<>();
+
     private String currentTheme = Sources.THEMES[0];
+    private boolean reloadPending = false;
     private int periodIndex = 1;
     private boolean loading = false;
     private int loadGeneration = 0;
@@ -78,6 +85,7 @@ public class MainActivity extends Activity {
         }
         prefs = getSharedPreferences("reglages", MODE_PRIVATE);
         periodIndex = Math.max(0, Math.min(PERIOD_MS.length - 1, prefs.getInt("periode", 1)));
+        persos = ThemePerso.load(prefs);
 
         store = new Store(this);
         store.load();
@@ -140,16 +148,7 @@ public class MainActivity extends Activity {
         tabs = new LinearLayout(this);
         tabs.setOrientation(LinearLayout.HORIZONTAL);
         tabs.setPadding(dp(10), 0, dp(10), dp(10));
-        for (String th : Sources.THEMES) {
-            TextView tab = text(Sources.label(th), 15, Color.WHITE, true);
-            tab.setTag(th);
-            tab.setPadding(dp(14), dp(8), dp(14), dp(8));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(dp(4), 0, dp(4), 0);
-            tab.setOnClickListener(v -> selectTab((String) v.getTag()));
-            tabs.addView(tab, lp);
-        }
+        buildTabs();
         hs.addView(tabs);
         root.addView(hs);
 
@@ -181,6 +180,101 @@ public class MainActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         return root;
+    }
+
+    private void buildTabs() {
+        tabs.removeAllViews();
+        List<String> ids = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        for (String th : Sources.THEMES) {
+            ids.add(th);
+            labels.add(Sources.label(th));
+        }
+        for (ThemePerso tp : persos) {
+            ids.add(tp.name);
+            labels.add("★ " + tp.name);
+        }
+        ids.add(ADD_TAB);
+        labels.add("＋ Thème");
+        for (int i = 0; i < ids.size(); i++) {
+            TextView tab = text(labels.get(i), 15, Color.WHITE, true);
+            final String id = ids.get(i);
+            tab.setTag(id);
+            tab.setPadding(dp(14), dp(8), dp(14), dp(8));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(dp(4), 0, dp(4), 0);
+            tab.setOnClickListener(v -> {
+                if (ADD_TAB.equals(id)) askNewTheme();
+                else selectTab(id);
+            });
+            if (findPerso(id) != null) {
+                tab.setOnLongClickListener(v -> {
+                    askDeleteTheme(findPerso(id));
+                    return true;
+                });
+            }
+            tabs.addView(tab, lp);
+        }
+    }
+
+    private ThemePerso findPerso(String name) {
+        for (ThemePerso tp : persos) if (tp.name.equals(name)) return tp;
+        return null;
+    }
+
+    private boolean themeExists(String name) {
+        for (String th : Sources.THEMES) if (th.equalsIgnoreCase(name)) return true;
+        for (ThemePerso tp : persos) if (tp.name.equalsIgnoreCase(name)) return true;
+        return false;
+    }
+
+    private void askNewTheme() {
+        final EditText input = new EditText(this);
+        input.setHint("Ex. : Ukraine   ou   UBB, Bordeaux-Bègles");
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setSingleLine(true);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        box.addView(text("Un ou plusieurs mots-clés séparés par des virgules. "
+                + "Le premier sert de nom à l'onglet.", 13, C_MUTED, false));
+        box.addView(input);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Nouveau thème")
+                .setView(box)
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Ajouter", (d, w) -> {
+                    ThemePerso tp = ThemePerso.parse(input.getText().toString());
+                    if (tp == null) return;
+                    if (themeExists(tp.name)) {
+                        Toast.makeText(this, "Ce thème existe déjà.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    persos.add(tp);
+                    ThemePerso.save(prefs, persos);
+                    buildTabs();
+                    selectTab(tp.name);
+                    if (loading) reloadPending = true;
+                    else reload();
+                })
+                .show();
+    }
+
+    private void askDeleteTheme(final ThemePerso tp) {
+        if (tp == null) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Supprimer « " + tp.name + " » ?")
+                .setMessage("Mots-clés : " + join(tp.keywords))
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Supprimer", (d, w) -> {
+                    persos.remove(tp);
+                    ThemePerso.save(prefs, persos);
+                    buildTabs();
+                    selectTab(Sources.THEMES[0]);
+                })
+                .show();
     }
 
     private void selectTab(String theme) {
@@ -222,7 +316,8 @@ public class MainActivity extends Activity {
         list.removeAllViews();
         long now = System.currentTimeMillis();
         long window = PERIOD_MS[periodIndex];
-        List<Article> items = Synthese.build(currentTheme, store.all(), now, window);
+        ThemePerso perso = findPerso(currentTheme);
+        List<Article> items = Synthese.build(currentTheme, perso, store.all(), now, window);
 
         // Résumé du thème (comptage factuel)
         Set<String> srcs = new LinkedHashSet<>();
@@ -231,6 +326,12 @@ public class MainActivity extends Activity {
             srcs.addAll(a.alsoSources);
         }
         String head;
+        if (perso != null) {
+            TextView kw = text("Mots-clés : " + join(perso.keywords)
+                    + "   (appui long sur l'onglet pour supprimer)", 12, C_MUTED, false);
+            kw.setPadding(dp(6), 0, dp(6), dp(4));
+            list.addView(kw);
+        }
         if (items.isEmpty()) {
             head = loading ? "Chargement…" : "Aucun sujet sur la période choisie.";
         } else {
@@ -349,6 +450,7 @@ public class MainActivity extends Activity {
         failures.clear();
 
         final List<Sources.Feed> feeds = Sources.all();
+        for (ThemePerso tp : persos) feeds.addAll(tp.feeds());
         final int[] done = {0};
         final List<Article> fresh = new ArrayList<>();
         statusLoad = "Chargement de " + feeds.size() + " flux…";
@@ -401,6 +503,11 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Aucun flux reçu : vérifie la connexion.", Toast.LENGTH_LONG).show();
         }
         render();
+        if (reloadPending) {
+            reloadPending = false;
+            reload();
+            return;
+        }
         startTranslation();
     }
 
